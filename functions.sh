@@ -168,28 +168,34 @@ function die()
 function list_usb_devices()
 {
     stat -c %N /sys/block/sd* 2>/dev/null | grep usb | cut -f1 -d ' ' | sed "s/[']//g;s|/sys/block|/dev|" > /tmp/usb_block_devices
-    eval usb_devs="($(cat  /tmp/usb_block_devices))"
+
+    # pls work pls work pls work
+    echo "/dev/mmcblk0" >> /tmp/usb_block_devices
+
+    eval usb_devs="($(cat /tmp/usb_block_devices))"
     [ "$usb_devs" != "" ] || return 1
+
     echo -e "\nDevices available:\n"
     num_usb_devs=0
     for dev in "${usb_devs[@]}"
     do
-    ((num_usb_devs+=1))
-    vendor=$(udevadm info --query=all --name=${dev#"/dev/"} | grep -E "ID_VENDOR=" | awk -F"=" '{print $2}')
-    model=$(udevadm info --query=all --name=${dev#"/dev/"} | grep -E "ID_MODEL=" | awk -F"=" '{print $2}')
-    sz=$(fdisk -l 2> /dev/null | grep "Disk ${dev}" | awk '{print $3}')
-    echo -n "$num_usb_devs)"
-    if [ -n "${vendor}" ]; then
-        echo -n " ${vendor}"
-    fi
-    if [ -n "${model}" ]; then
-        echo -n " ${model}"
-    fi
-    echo -e " (${sz} GB)"
+        ((num_usb_devs+=1))
+        vendor=$(udevadm info --query=all --name=${dev##*/} | grep -E "ID_VENDOR=" | awk -F"=" '{print $2}')
+        model=$(udevadm info --query=all --name=${dev##*/} | grep -E "ID_MODEL=" | awk -F"=" '{print $2}')
+        sz=$(fdisk -l 2> /dev/null | grep -m 1 "Disk ${dev}" | awk '{print $3}')
+        echo -n "$num_usb_devs)"
+        if [ -n "${vendor}" ]; then
+            echo -n " ${vendor}"
+        fi
+        if [ -n "${model}" ]; then
+            echo -n " ${model}"
+        fi
+        echo -e " (${sz} GB)"
     done
     echo -e ""
     return 0
 }
+
 
 
 ################
